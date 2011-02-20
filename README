@@ -1,0 +1,33 @@
+NAME
+    ToyBox::Perceptron - Classifier using Perceptron
+
+SYNOPSIS
+      use ToyBox::Perceptron;
+
+      my $pct= ToyBox::Perceptron->new();
+  
+      $pct->add_instance(
+          attributes => {a => 2, b => 3},
+          label => 'positive'
+      );
+  
+      $pct->add_instance(
+          attributes => {c => 3, d => 1},
+          label => 'negative'
+      );
+  
+      $pct->train(T => 10, progress_cb => 'verbose');
+  
+      my $score = $pct->predict(
+                      attributes => {a => 1, b => 1, d => 1, e =>1}
+                  );
+
+DESCRIPTION
+AUTHOR
+    TAGAMI Yukihiro <tagami.yukihiro@gmail.com>
+
+LICENSE
+    This library is distributed under the term of the MIT license.
+
+    <http://opensource.org/licenses/mit-license.php>
+
