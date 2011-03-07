@@ -1,4 +1,4 @@
-package ::MLPerceptron;
+package ToyBox::MLPerceptron;
 
 use strict;
 use warnings;
@@ -49,9 +49,16 @@ sub train {
     my $verbose = 0;
     $verbose = 1 if defined($progress_cb) && $progress_cb eq 'verbose';
 
+    my $algorithm = $params{algorithm};
+    my $avg = 0;
+    $avg = 1 if defined($algorithm) && $algorithm eq 'average';
+
     my $alpha = $self->{alpha};
 
-    foreach my $t (1 .. $T) {
+    my $alpha_sum = {};
+    my $t;
+
+    foreach $t (1 .. $T) {
         my $miss_num = 0;
         for (my $i = 0; $i < $self->{dnum}; $i++) {
             my $attributes = $self->{fdata}[$i];
@@ -87,9 +94,25 @@ sub train {
                 $miss_num++;
             }
         }
+
+        if ($avg) {
+            while (my ($f, $val) = each %$alpha) {
+                $alpha_sum->{$f} += $val;
+            }
+        }
+
         print STDERR "t: $t, miss num: $miss_num\n" if $verbose;
         last if $miss_num == 0;
+
     }
+
+    if ($avg) {
+        foreach my $f (keys %$alpha_sum) {
+            $alpha_sum->{$f} /= $t;
+        }
+        $self->{alpha} = $alpha_sum;
+    }
+
     1;
 }
 
@@ -102,10 +125,9 @@ sub predict {
 
     my $alpha = $self->{alpha};
 
-    return {} unless %$alpha;
-
     my $score = {};
     foreach my $l (keys %{$self->{lindex}}) {
+        $score->{$l} = 0;
         while (my ($f, $val) = each %$attributes) {
             my $key = "$f$l";
             $score->{$l} += $alpha->{$key} * $val
