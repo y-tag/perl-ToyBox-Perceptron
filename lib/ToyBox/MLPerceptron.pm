@@ -54,11 +54,10 @@ sub train {
     $avg = 1 if defined($algorithm) && $algorithm eq 'average';
 
     my $alpha = $self->{alpha};
-
     my $alpha_sum = {};
-    my $t;
+    my $update_num = 0;
 
-    foreach $t (1 .. $T) {
+    foreach my $t (1 .. $T) {
         my $miss_num = 0;
         for (my $i = 0; $i < $self->{dnum}; $i++) {
             my $attributes = $self->{fdata}[$i];
@@ -93,13 +92,15 @@ sub train {
                 }
                 $miss_num++;
             }
-        }
 
-        if ($avg) {
-            while (my ($f, $val) = each %$alpha) {
-                $alpha_sum->{$f} += $val;
+            if ($avg) {
+                while (my ($f, $val) = each %$alpha) {
+                    $alpha_sum->{$f} += $val;
+                }
+                $update_num++;
             }
         }
+
 
         print STDERR "t: $t, miss num: $miss_num\n" if $verbose;
         last if $miss_num == 0;
@@ -108,7 +109,7 @@ sub train {
 
     if ($avg) {
         foreach my $f (keys %$alpha_sum) {
-            $alpha_sum->{$f} /= $t;
+            $alpha_sum->{$f} /= $update_num;
         }
         $self->{alpha} = $alpha_sum;
     }
