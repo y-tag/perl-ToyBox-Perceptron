@@ -139,7 +139,7 @@ __END__
 
 =head1 NAME
 
-ToyBox::Perceptron - Classifier using Perceptron
+ToyBox::Perceptron - Classifier using Perceptron Algorithm
 
 =head1 SYNOPSIS
 

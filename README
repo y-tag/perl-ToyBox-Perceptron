@@ -1,5 +1,5 @@
 NAME
-    ToyBox::Perceptron - Classifier using Perceptron
+    ToyBox::Perceptron - Classifier using Perceptron Algorithm
 
 SYNOPSIS
       use ToyBox::Perceptron;
@@ -16,7 +16,9 @@ SYNOPSIS
           label => 'negative'
       );
   
-      $pct->train(T => 10, progress_cb => 'verbose');
+      $pct->train(T => 10,
+                  algorithm => 'average',
+                  progress_cb => 'verbose');
   
       my $score = $pct->predict(
                       attributes => {a => 1, b => 1, d => 1, e =>1}
