@@ -3,7 +3,7 @@ package ToyBox::MLPerceptron;
 use strict;
 use warnings;
 
-our $VERSION = '0.0.1';
+our $VERSION = '0.0.2';
 
 sub new {
     my $class = shift;
@@ -57,6 +57,8 @@ sub train {
     my $alpha_sum = {};
     my $update_num = 0;
 
+    my $continue_num = 1;
+
     foreach my $t (1 .. $T) {
         my $miss_num = 0;
         for (my $i = 0; $i < $self->{dnum}; $i++) {
@@ -71,7 +73,7 @@ sub train {
                 my $feature = {};
                 my $score = 0;
                 while (my ($f, $val) = each %$attributes) {
-                    my $key = "$f$l";
+                    my $key = "$f\001$l";
                     $feature->{$key} = $val;
                     $score += $alpha->{$key} * $val if defined($alpha->{$key});
                 }
@@ -84,6 +86,14 @@ sub train {
             }
             die "max_l is undef" unless defined($max_l);
             if ($max_l ne $label) {
+                if ($avg) {
+                    while (my ($f, $v) = each %$alpha) {
+                        $alpha_sum->{$f} += $continue_num * $v;
+                    }
+                    $update_num += $continue_num;
+                    $continue_num = 1;
+                }
+
                 while (my ($f, $val) = each %$true_feature) {
                     $alpha->{$f} += $val;
                 }
@@ -91,16 +101,10 @@ sub train {
                     $alpha->{$f} -= $val;
                 }
                 $miss_num++;
-            }
-
-            if ($avg) {
-                while (my ($f, $val) = each %$alpha) {
-                    $alpha_sum->{$f} += $val;
-                }
-                $update_num++;
+            } else {
+                $continue_num++ if $avg;
             }
         }
-
 
         print STDERR "t: $t, miss num: $miss_num\n" if $verbose;
         last if $miss_num == 0;
@@ -108,7 +112,9 @@ sub train {
     }
 
     if ($avg) {
+        $update_num += $continue_num;
         foreach my $f (keys %$alpha_sum) {
+            $alpha_sum->{$f} += $continue_num * $alpha->{$f};
             $alpha_sum->{$f} /= $update_num;
         }
         $self->{alpha} = $alpha_sum;
@@ -130,7 +136,7 @@ sub predict {
     foreach my $l (keys %{$self->{lindex}}) {
         $score->{$l} = 0;
         while (my ($f, $val) = each %$attributes) {
-            my $key = "$f$l";
+            my $key = "$f\001$l";
             $score->{$l} += $alpha->{$key} * $val
                 if defined($alpha->{$key});
         }
@@ -167,7 +173,9 @@ ToyBox::MLPerceptron - Classifier using Multi Label Perceptron
       label => 'negative'
   );
   
-  $pct->train(T => 10, progress_cb => 'verbose');
+  $pct->train(T => 10,
+              algorithm => 'average',
+              progress_cb => 'verbose');
   
   my $score = $pct->predict(
                   attributes => {a => 1, b => 1, d => 1, e =>1}

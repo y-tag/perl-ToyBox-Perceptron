@@ -3,7 +3,7 @@ package ToyBox::Perceptron;
 use strict;
 use warnings;
 
-our $VERSION = '0.0.1';
+our $VERSION = '0.0.2';
 
 sub new {
     my $class = shift;
@@ -57,6 +57,9 @@ sub train {
     my $alpha_sum = {};
     my $update_num = 0;
 
+    my %continue_num = ();
+    $continue_num{$_} = 1 for keys %{$self->{lindex}};
+
     foreach my $t (1 .. $T) {
         my $miss_num = 0;
         for (my $i = 0; $i < $self->{dnum}; $i++) {
@@ -71,22 +74,22 @@ sub train {
                     $score += $alpha->{$l}{$f} * $val if defined($alpha->{$l}{$f});
                 }
                 if ($x * $score <= 0) {
-                    while (my ($f, $val) = each %$attributes) {
-                        $alpha->{$l}{$f} += $x * $val;
-                        $alpha_sum->{$l}{$f} += $alpha->{$l}{$f};
+                    if ($avg) {
+                        while (my ($f, $v) = each %{$alpha->{$l}}) {
+                            $alpha_sum->{$l}{$f} = $continue_num{$l} * $v;
+                        }
+                        $update_num += $continue_num{$l};
+                        $continue_num{$l} = 1;
+                    }
+                    while (my ($f, $v) = each %$attributes) {
+                        $alpha->{$l}{$f} += $x * $v;
                     }
                     $miss_num++;
-                }
-
-                if ($avg) {
-                    foreach my $f (keys %{$alpha->{$l}}) {
-                        $alpha_sum->{$l}{$f} += $alpha->{$l}{$f};
-                    }
-                    $update_num++;
+                } else {
+                    $continue_num{$l}++;
                 }
             }
         }
-
 
         print STDERR "t: $t, miss num: $miss_num\n" if $verbose;
         last if $miss_num == 0;
@@ -95,6 +98,7 @@ sub train {
     if ($avg) {
         foreach my $l (keys %$alpha) {
             foreach my $f (keys %{$alpha_sum->{$l}}) {
+                $alpha_sum->{$l}{$f} += $continue_num{$l} * $alpha->{$l}{$f};
                 $alpha_sum->{$l}{$f} /= $update_num;
             }
         }
@@ -153,7 +157,9 @@ ToyBox::Perceptron - Classifier using Perceptron
       label => 'negative'
   );
   
-  $pct->train(T => 10, progress_cb => 'verbose');
+  $pct->train(T => 10,
+              algorithm => 'average',
+              progress_cb => 'verbose');
   
   my $score = $pct->predict(
                   attributes => {a => 1, b => 1, d => 1, e =>1}
