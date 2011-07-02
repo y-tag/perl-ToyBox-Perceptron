@@ -3,14 +3,15 @@ package ToyBox::Perceptron;
 use strict;
 use warnings;
 
+use List::Util qw(shuffle);
+
 our $VERSION = '0.0.2';
 
 sub new {
     my $class = shift;
     my $self = {
         dnum => 0,
-        fdata => [],
-        ldata => [],
+        data => [],
         lindex => {},
         alpha => {},
     } ;
@@ -29,11 +30,10 @@ sub add_instance {
     my %copy_attr = %$attributes;
 
     foreach my $l (@$label) {
-        my $copy_l = $l;
         $self->{lindex}{$l} = scalar(keys %{$self->{lindex}})
             unless defined($self->{lindex}{$l});
-        push(@{$self->{fdata}}, \%copy_attr);
-        push(@{$self->{ldata}}, $copy_l);
+        my $datum = {f => \%copy_attr, l => $l};
+        push(@{$self->{data}}, $datum);
         $self->{dnum}++;
     }
 }
@@ -62,9 +62,9 @@ sub train {
 
     foreach my $t (1 .. $T) {
         my $miss_num = 0;
-        for (my $i = 0; $i < $self->{dnum}; $i++) {
-            my $attributes = $self->{fdata}[$i];
-            my $label = $self->{ldata}[$i];
+        foreach my $datum (@{$self->{data}}) {
+            my $attributes = $datum->{f};
+            my $label = $datum->{l};
 
             foreach my $l (keys %{$self->{lindex}}) {
                 my $feature = {};

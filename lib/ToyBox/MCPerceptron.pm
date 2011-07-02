@@ -1,4 +1,4 @@
-package ToyBox::MLPerceptron;
+package ToyBox::MCPerceptron;
 
 use strict;
 use warnings;
@@ -155,13 +155,13 @@ __END__
 
 =head1 NAME
 
-ToyBox::MLPerceptron - Classifier using MultiLabel Perceptron Algorithm
+ToyBox::MCPerceptron - Classifier using MultiLabel Perceptron Algorithm
 
 =head1 SYNOPSIS
 
-  use ToyBox::MLPerceptron;
+  use ToyBox::MCPerceptron;
 
-  my $pct= ToyBox::MLPerceptron->new();
+  my $pct= ToyBox::MCPerceptron->new();
   
   $pct->add_instance(
       attributes => {a => 2, b => 3},
