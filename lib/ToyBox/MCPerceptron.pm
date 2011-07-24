@@ -155,7 +155,7 @@ __END__
 
 =head1 NAME
 
-ToyBox::MCPerceptron - Classifier using MultiLabel Perceptron Algorithm
+ToyBox::MCPerceptron - Classifier using MultiClass Perceptron Algorithm
 
 =head1 SYNOPSIS
 
