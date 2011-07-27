@@ -59,53 +59,46 @@ sub train {
 
     my $continue_num = 1;
 
+    my @all_labels = keys %{$self->{lindex}};
+
     foreach my $t (1 .. $T) {
         my $miss_num = 0;
         foreach my $datum (@{$self->{data}}) {
             my $attributes = $datum->{f};
             my $label = $datum->{l};
 
-            my $max_score = 0;
-            my $max_feature = {};
-            my $max_l = undef;
-            my $true_feature = {};
-            foreach my $l (keys %{$self->{lindex}}) {
-                my $feature = {};
-                my $score = 0;
-                while (my ($f, $val) = each %$attributes) {
-                    my $key = "$f\001$l";
-                    $feature->{$key} = $val;
-                    $score += $alpha->{$key} * $val if defined($alpha->{$key});
+            my $scores = {};
+            while (my ($f, $val) = each %$attributes) {
+                next unless $alpha->{$f};
+                while (my ($l, $w) = each %{$alpha->{$f}}) {
+                    $scores->{$l} += $val * $w;
                 }
-                if ($score >= $max_score) {
-                    $max_score = $score;
-                    $max_feature = $feature;
-                    $max_l = $l;
-                }
-                $true_feature = $feature if $l eq $label;
             }
-            die "max_l is undef" unless defined($max_l);
+
+            my @sorted_label =
+                sort {$scores->{$b} <=> $scores->{$a}} keys %$scores;
+
+            my $max_l = $sorted_label[0] || $all_labels[0];
+
             if ($max_l ne $label) {
                 if ($avg) {
-                    while (my ($f, $v) = each %$alpha) {
-                        $alpha_sum->{$f} += $continue_num * $v;
+                    foreach my $f (keys %$alpha) {
+                        while (my ($l, $w) = each %{$alpha->{$f}}) {
+                            $alpha_sum->{$f}{$l} += $continue_num * $w;
+                        }
                     }
                     $update_num += $continue_num;
                     $continue_num = 1;
                 }
-
-                while (my ($f, $val) = each %$true_feature) {
-                    $alpha->{$f} += $val;
+                while (my ($f, $val) = each %$attributes) {
+                    $alpha->{$f}{$label} += $val;
+                    $alpha->{$f}{$max_l} -= $val;
                 }
-                while (my ($f, $val) = each %$max_feature) {
-                    $alpha->{$f} -= $val;
-                }
-                $miss_num++;
+                $miss_num += 1;
             } else {
-                $continue_num++ if $avg;
+                $continue_num += 1 if $avg;
             }
         }
-
         print STDERR "t: $t, miss num: $miss_num\n" if $verbose;
         last if $miss_num == 0;
 
@@ -113,9 +106,11 @@ sub train {
 
     if ($avg) {
         $update_num += $continue_num;
-        foreach my $f (keys %$alpha_sum) {
-            $alpha_sum->{$f} += $continue_num * $alpha->{$f};
-            $alpha_sum->{$f} /= $update_num;
+        foreach my $f (keys %$alpha) {
+            while (my ($l, $w) = each %{$alpha->{$f}}) {
+                $alpha_sum->{$f}{$l} += $continue_num * $alpha->{$f}{$l};
+                $alpha_sum->{$f}{$l} /= $update_num;
+            }
         }
         $self->{alpha} = $alpha_sum;
     }
@@ -132,16 +127,15 @@ sub predict {
 
     my $alpha = $self->{alpha};
 
-    my $score = {};
-    foreach my $l (keys %{$self->{lindex}}) {
-        $score->{$l} = 0;
-        while (my ($f, $val) = each %$attributes) {
-            my $key = "$f\001$l";
-            $score->{$l} += $alpha->{$key} * $val
-                if defined($alpha->{$key});
+    my $scores = {};
+    while (my ($f, $val) = each %$attributes) {
+        next unless $alpha->{$f};
+        while (my ($l, $w) = each %{$alpha->{$f}}) {
+            $scores->{$l} += $val * $w;
         }
     }
-    $score;
+
+    $scores;
 }
 
 sub labels {
